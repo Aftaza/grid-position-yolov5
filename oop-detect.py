@@ -36,7 +36,9 @@ class FaceGridDetector:
 
         return img
 
-    def identify_grid_position(self, center):
+    def identify_grid_position(self, center, faces_detected):
+        if len(faces_detected) == 0:
+            return (-1, -1)
         x_pos = sum(center['x'] > x for x in self.gridbox['x'])
         y_pos = sum(center['y'] > y for y in self.gridbox['y'])
         return (x_pos, y_pos)
@@ -48,12 +50,15 @@ class FaceGridDetector:
             faces = self.face_cascade.detectMultiScale(gray, 1.3, 5)
             self.new_frame_time = time.time()
 
-            for (x, y, w, h) in faces:
-                # To draw a rectangle in a face
-                cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 0), 2)
-                # draw center box
-                self.center = {'x': int(x + w / 2), 'y': int(y + h / 2)}
-                cv2.circle(img, (self.center['x'], self.center['y']), 5, (0, 0, 255), -1)
+            if len(faces) > 0:
+                for (x, y, w, h) in faces:
+                    # To draw a rectangle in a face
+                    cv2.rectangle(img, (x, y), (x + w, y + h), (255, 255, 0), 2)
+                    # draw center box
+                    self.center = {'x': int(x + w / 2), 'y': int(y + h / 2)}
+                    cv2.circle(img, (self.center['x'], self.center['y']), 5, (0, 0, 255), -1)
+            else:
+                self.center = {'x': -1, 'y': -1}
 
             fps = 1 / (self.new_frame_time - self.prev_frame_time)
             self.prev_frame_time = self.new_frame_time
@@ -62,7 +67,7 @@ class FaceGridDetector:
             fps = f"{fps} fps"
 
             img = self.draw_grid(img)
-            grid_position = self.identify_grid_position(self.center)
+            grid_position = self.identify_grid_position(self.center, faces)
 
             cv2.putText(img, fps, (7, 30), self.font, 1, (100, 255, 0), 2, cv2.LINE_AA)
             cv2.putText(img, f"Grid Position: {grid_position}", (7, 60), self.font, 1, (100, 255, 0), 2, cv2.LINE_AA)

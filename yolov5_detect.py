@@ -95,7 +95,7 @@ class YOLOv5Detector:
         dy, dx = h / rows, w / cols
 
         self.gridbox = {'x': [], 'y': []}
-        
+
         # draw vertical lines
         for x in np.linspace(start=dx, stop=w-dx, num=cols-1):
             x = int(round(x))
@@ -111,6 +111,10 @@ class YOLOv5Detector:
         return img
 
     def identify_position(self, img, box):
+        if box is None:
+            cv2.putText(img, "No object detected. Grid position: (-1, -1)", (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+            return
+
         cx, cy = box[0] + box[2] // 2, box[1] + box[3] // 2
         found = False
         for i in range(len(self.gridbox['x'])+1):
@@ -141,14 +145,17 @@ class YOLOv5Detector:
 
             frame = self.draw_grid(frame, (3, 3))
 
-            for (classid, confidence, box) in zip(class_ids, confidences, boxes):
-                color = self.COLORS[int(classid) % len(self.COLORS)]
-                center = (int(box[0]+box[2]/2), int(box[1]+box[3]/2))
-                cv2.rectangle(frame, box, color, 2)
-                cv2.rectangle(frame, (box[0], box[1] - 20), (box[0] + box[2], box[1]), color, -1)
-                cv2.circle(frame, center, 5, color, -1)
-                cv2.putText(frame, self.class_list[classid], (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
-                self.identify_position(frame, box)
+            if len(boxes) == 0:
+                self.identify_position(frame, None)
+            else:
+                for (classid, confidence, box) in zip(class_ids, confidences, boxes):
+                    color = self.COLORS[int(classid) % len(self.COLORS)]
+                    center = (int(box[0]+box[2]/2), int(box[1]+box[3]/2))
+                    cv2.circle(frame, center, 5, color, -1)
+                    cv2.rectangle(frame, box, color, 2)
+                    cv2.rectangle(frame, (box[0], box[1] - 20), (box[0] + box[2], box[1]), color, -1)
+                    cv2.putText(frame, self.class_list[classid], (box[0], box[1] - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0))
+                    self.identify_position(frame, box)
 
             if self.frame_count >= 30:
                 end_time = time.time_ns()
@@ -156,8 +163,9 @@ class YOLOv5Detector:
                 self.frame_count = 0
                 self.start_time = time.time_ns()
 
-            fps_label = f"FPS: {self.fps:.2f}"
-            cv2.putText(frame, fps_label, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
+            if self.fps > 0:
+                fps_label = f"FPS: {self.fps:.2f}"
+                cv2.putText(frame, fps_label, (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
 
             cv2.imshow("output", frame)
 
@@ -172,4 +180,3 @@ if __name__ == "__main__":
     is_cuda = len(sys.argv) > 1 and sys.argv[1] == "cuda"
     detector = YOLOv5Detector("conf/yolov5n.onnx", "conf/class.txt", is_cuda)
     detector.run()
-
