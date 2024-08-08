@@ -15,7 +15,7 @@ python detect.py
 # or
 python oop-detect.py
 ```
-`yolov5.py` uses for grid position with yolo_v5 model.  
+`yolov5_detect.py` uses for grid position with yolo_v5 model.  
 ```
 # with CPU Process
 python yolov5.py
